@@ -1,18 +1,14 @@
-import mongoose, { Document, Schema } from "mongoose";
-
-export interface IBank extends Document {
-  bankName: string;
-  accountNamw: string;
-  accountNumber: string;
+export interface IBank {
+  id: string;
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  created_at: Date;
+  updated_at: Date;
 }
 
-const BankSchema: Schema = new Schema(
-  {
-    bankName: { type: String, required: true },
-    accountName: { type: String, required: true },
-    accountNumber: { type: String, required: true },
-  },
-  { timestamps: true },
-);
-
-export default mongoose.model<IBank>("Bank", BankSchema);
+export interface IBankDTO {
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+}

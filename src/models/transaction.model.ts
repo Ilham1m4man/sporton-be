@@ -1,48 +1,51 @@
-import mongoose, { Document, Schema } from "mongoose";
+export interface ITransaction {
+  id: string;
+  status: "pending" | "paid" | "rejected";
+  payment_proof: string | null;
+  total_payment: number;
+  customer_name: string;
+  customer_contact: string;
+  customer_address: string;
+  created_at: Date;
+  updated_at: Date;
+}
 
-export interface IPurchasedItem {
-  productId: mongoose.Types.ObjectId;
+export interface ITransactionItem {
+  id: string;
+  transaction_id: string;
+  product_id: string;
+  qty: number;
+  price_at_purchase: number;
+}
+
+// Response JOIN: transaction + items (with product details)
+export interface ITransactionItemWithProduct extends ITransactionItem {
+  product: {
+    id: string;
+    name: string;
+    description: string;
+    image_url: string;
+    stock: number;
+    price: number;
+    category_id: string;
+  };
+}
+
+export interface ITransactionWithItems extends ITransaction {
+  items: ITransactionItemWithProduct[];
+}
+
+// Input dari client
+export interface ITransactionItemInput {
+  product_id: string;
   qty: number;
 }
 
-export interface ITransaction extends Document {
-  paymentProof: string;
-  status: "pending" | "paid" | "rejected";
-  purchasedItems: IPurchasedItem[];
-  totalPayment: number;
-  customerName: string;
-  customerContact: string;
-  customerAddress: string;
+export interface ITransactionInput {
+  payment_proof?: string;
+  total_payment: number;
+  customer_name: string;
+  customer_contact: string;
+  customer_address: string;
+  items: ITransactionItemInput[];
 }
-
-const PurchasedItemSchema: Schema = new Schema(
-  {
-    productId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-      required: true,
-    },
-    qty: { type: Number, required: true, min: 1 },
-  },
-  { _id: false },
-);
-
-const TransactionSchema: Schema = new Schema(
-  {
-    paymentProof: { type: String, required: true },
-    status: {
-      type: String,
-      enum: ["pending", "paid", "rejected"],
-      default: "pending",
-      required: true,
-    },
-    purchasedItems: { type: [PurchasedItemSchema], required: true },
-    totalPayment: { type: Number, required: true },
-    customerName: { type: String, required: true },
-    customerContact: { type: String, required: true },
-    customerAddress: { type: String, required: true },
-  },
-  { timestamps: true },
-);
-
-export default mongoose.model<ITransaction>("Transaction", TransactionSchema);

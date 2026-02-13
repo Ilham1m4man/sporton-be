@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import Product from "../models/product.model";
+import {ProductRepository} from "../repositories/product.repository";
 
 export const createProduct = async (
   req: Request,
@@ -8,10 +8,9 @@ export const createProduct = async (
   try {
     const productData = req.body;
     if (req.file) {
-      productData.imageUrl = req.file.path;
+      productData.image_url = req.file.path;
     }
-    const product = new Product(productData);
-    await product.save();
+    const product = await ProductRepository.create(productData);
     res.status(201).json(product);
   } catch (err) {
     res.status(500).json({ message: "Error creating product", err });
@@ -23,9 +22,7 @@ export const getProducts = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const products = await Product.find()
-      .populate("category")
-      .sort({ createdAt: -1 });
+    const products = await ProductRepository.findAll()
     res.status(200).json(products);
   } catch (err) {
     res.status(500).json({ message: "Error getting products", err });
@@ -33,11 +30,11 @@ export const getProducts = async (
 };
 
 export const getProductById = async (
-  req: Request,
+  req: Request<{id: string}>,
   res: Response,
 ): Promise<void> => {
   try {
-    const product = await Product.findById(req.params.id).populate("category");
+    const product = await ProductRepository.findById(req.params.id);
     if (!product) {
       res.status(404).json({ message: "Product not found" });
       return;
@@ -49,7 +46,7 @@ export const getProductById = async (
 };
 
 export const updateProduct = async (
-  req: Request,
+  req: Request<{id: string}>,
   res: Response,
 ): Promise<void> => {
   try {
@@ -57,10 +54,9 @@ export const updateProduct = async (
     if (req.file) {
       productData.imageUrl = req.file.path;
     }
-    const product = await Product.findByIdAndUpdate(
+    const product = await ProductRepository.update(
       req.params.id,
       productData,
-      { new: true },
     );
     if (!product) {
       res.status(400).json({ message: "Product not found" });
@@ -72,11 +68,11 @@ export const updateProduct = async (
 };
 
 export const deleteProduct = async (
-  req: Request,
+  req: Request<{id: string}>,
   res: Response,
 ): Promise<void> => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await ProductRepository.delete(req.params.id);
     if (!product) {
       res.status(400).json({ message: "Product not found" });
       return;

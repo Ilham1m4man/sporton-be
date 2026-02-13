@@ -1,28 +1,32 @@
-import mongoose, { Document, Schema } from "mongoose";
-
-export interface IProduct extends Document {
+export interface IProduct {
+  id: string;
+  category_id: string;
   name: string;
   description: string;
+  image_url: string;
   stock: number;
   price: number;
-  imageUrl: string;
-  category: mongoose.Types.ObjectId;
+  created_at: Date;
+  updated_at: Date;
 }
 
-const ProductSchema: Schema = new Schema(
-  {
-    name: { type: String, required: true },
-    description: { type: String, required: true },
-    stock: { type: Number, required: true },
-    price: { type: Number, required: true },
-    imageUrl: { type: String, required: true },
-    category: {
-      type: mongoose.Types.ObjectId,
-      ref: "Category",
-      required: true,
-    },
-  },
-  { timestamps: true },
-);
+// Response JOIN dengan category
+export interface IProductWithCategory extends IProduct {
+  category: {
+    id: string;
+    name: string;
+    description: string;
+    image_url: string;
+    created_at: Date;
+    updated_at: Date;
+  };
+}
 
-export default mongoose.model<IProduct>("Product", ProductSchema);
+export interface IProductInput {
+  category_id: string;
+  name: string;
+  description: string;
+  image_url: string;
+  stock?: number; // Optional karena DEFAULT 0 di DB
+  price: number;
+}

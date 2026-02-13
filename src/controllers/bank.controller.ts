@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
-import Bank from "../models/bank.model";
+import { BankRepository } from "../repositories/bank.repository";
 
 export const createBank = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
   try {
-    const bank = new Bank(req.body);
-    await bank.save();
+    const bankData = req.body;
+    const bank = await BankRepository.create(bankData);
     res.status(201).json(bank);
   } catch (err) {
     res.status(500).json({ message: "Error creating Bank!", err });
@@ -15,22 +15,23 @@ export const createBank = async (
 };
 
 export const getBanks = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const banks = await Bank.find().sort({createdAt: -1})
-        res.status(200).json(banks)
-    } catch (err) {
-        res.status(500).json({message: "Error getting Banks", err})
-    }
-}
+  try {
+    const banks = await BankRepository.findAll();
+    res.status(200).json(banks);
+  } catch (err) {
+    res.status(500).json({ message: "Error getting Banks", err });
+  }
+};
 
 export const updateBank = async (
-  req: Request,
+  req: Request<{id: string}>,
   res: Response,
 ): Promise<void> => {
   try {
-    const bank = await Bank.findByIdAndUpdate(req.params.id, req.body, {new: true});
+    const bankData = req.body;
+    const bank = await BankRepository.update(req.params.id, bankData);
     if (!bank) {
-        res.status(404).json({message: "Bank not found"})
+      res.status(404).json({ message: "Bank not found" });
     }
     res.status(200).json(bank);
   } catch (err) {
@@ -39,15 +40,15 @@ export const updateBank = async (
 };
 
 export const deleteBank = async (
-  req: Request,
+  req: Request<{id: string}>,
   res: Response,
 ): Promise<void> => {
   try {
-    const bank = await Bank.findByIdAndDelete(req.params.id);
+    const bank = await BankRepository.delete(req.params.id);
     if (!bank) {
-        res.status(404).json({message: "Bank not found"})
+      res.status(404).json({ message: "Bank not found" });
     }
-    res.status(200).json({message: "Bank deleted successfully"});
+    res.status(200).json({ message: "Bank deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Error deleting Bank!", err });
   }
