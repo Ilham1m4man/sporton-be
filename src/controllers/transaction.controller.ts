@@ -11,7 +11,7 @@ export const createTransaction = async (
 
     // Handle file upload (payment proof)
     if (req.file) {
-      transactionData.payment_proof = req.file.path;
+      transactionData.payment_proof = (req.file as any).location;
     }
 
     // Parse items kalau dikirim sebagai string (multipart/form-data)

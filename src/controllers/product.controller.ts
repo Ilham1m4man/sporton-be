@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import {ProductRepository} from "../repositories/product.repository";
+import { deleteFromS3 } from "../middlewares/upload.middleware";
 
 export const createProduct = async (
   req: Request,
@@ -8,7 +9,7 @@ export const createProduct = async (
   try {
     const productData = req.body;
     if (req.file) {
-      productData.image_url = req.file.path;
+      productData.image_url = (req.file as any).location;
     }
     const product = await ProductRepository.create(productData);
     res.status(201).json(product);
@@ -52,7 +53,11 @@ export const updateProduct = async (
   try {
     const productData = req.body;
     if (req.file) {
-      productData.imageUrl = req.file.path;
+      const oldProduct = await ProductRepository.findById(req.params.id)
+      if (oldProduct?.image_url) {
+        await deleteFromS3(oldProduct.image_url)
+      }
+      productData.image_url = (req.file as any).location;
     }
     const product = await ProductRepository.update(
       req.params.id,
@@ -72,10 +77,14 @@ export const deleteProduct = async (
   res: Response,
 ): Promise<void> => {
   try {
+    const oldProduct = await ProductRepository.findById(req.params.id)
     const product = await ProductRepository.delete(req.params.id);
     if (!product) {
       res.status(400).json({ message: "Product not found" });
       return;
+    }
+    if (oldProduct?.image_url) {
+      await deleteFromS3(oldProduct.image_url)
     }
     res.status(200).json({ message: "Product deleted successfully!" });
   } catch (err) {
