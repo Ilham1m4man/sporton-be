@@ -9,9 +9,9 @@ const pool = new Pool({
   user: process.env.DB_USER || "postgres",
   password: process.env.DB_PASSWORD || "postgres",
   database: process.env.DB_NAME || "sporton",
-  /* ssl: process.env.DB_SSL === "true" 
+  ssl: process.env.DB_SSL === "true" 
     ? { rejectUnauthorized: false } 
-    : false, */
+    : false,
 });
 
 export default pool;
