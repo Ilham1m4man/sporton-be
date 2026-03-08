@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { TransactionRepository } from "../repositories/transaction.repository";
-import { generatePresignedUrl } from "../utils/s3.utils";     
+import { generatePresignedUrl } from "../utils/s3.utils";
 
 // ── Helper: attach presigned URL ────────────────────────────
 const attachPresignedUrl = async (item: any) => {
@@ -9,19 +9,12 @@ const attachPresignedUrl = async (item: any) => {
     item.payment_proof = await generatePresignedUrl(item.payment_proof);
   }
 
-  // Presign nested purchased_items → product images + category images
-  if (item?.purchased_items?.length) {
-    for (const purchasedItem of item.purchased_items) {
-      // Product image
-      if (purchasedItem?.product_id?.image_url) {
-        purchasedItem.product_id.image_url = await generatePresignedUrl(
-          purchasedItem.product_id.image_url
-        );
-      }
-      // Product → Category image
-      if (purchasedItem?.product_id?.category?.image_url) {
-        purchasedItem.product_id.category.image_url = await generatePresignedUrl(
-          purchasedItem.product_id.category.image_url
+  // Presign nested items → product.image_url
+  if (item?.items?.length) {
+    for (const txItem of item.items) {
+      if (txItem?.product?.image_url) {
+        txItem.product.image_url = await generatePresignedUrl(
+          txItem.product.image_url
         );
       }
     }
@@ -38,12 +31,10 @@ export const createTransaction = async (
   try {
     const transactionData = req.body;
 
-    // Handle file upload (payment proof)
     if (req.file) {
       transactionData.payment_proof = (req.file as any).location;
     }
 
-    // Parse items kalau dikirim sebagai string (multipart/form-data)
     if (typeof transactionData.items === "string") {
       try {
         transactionData.items = JSON.parse(transactionData.items);
@@ -54,7 +45,7 @@ export const createTransaction = async (
     }
 
     const transaction = await TransactionRepository.create(transactionData);
-    res.status(201).json(await attachPresignedUrl(transaction));    
+    res.status(201).json(await attachPresignedUrl(transaction));
   } catch (err: any) {
     if (err.message?.includes("not found")) {
       res.status(400).json({ message: err.message });
@@ -71,11 +62,10 @@ export const getTransactions = async (
 ): Promise<void> => {
   try {
     const transactions = await TransactionRepository.findAll();
-    // Presign semua transactions
     const transactionsWithUrls = await Promise.all(
       transactions.map(attachPresignedUrl)
     );
-    res.status(200).json(transactionsWithUrls);                     
+    res.status(200).json(transactionsWithUrls);
   } catch (err) {
     res.status(500).json({ message: "Error getting transactions", err });
   }
@@ -94,7 +84,7 @@ export const getTransactionById = async (
       return;
     }
 
-    res.status(200).json(await attachPresignedUrl(transaction));    
+    res.status(200).json(await attachPresignedUrl(transaction));
   } catch (err) {
     res.status(500).json({ message: "Error getting transaction", err });
   }
@@ -108,7 +98,6 @@ export const updateTransaction = async (
   try {
     const { status } = req.body;
 
-    // Validate status
     if (!["pending", "paid", "rejected"].includes(status)) {
       res.status(400).json({ message: "Invalid status value" });
       return;
@@ -124,7 +113,7 @@ export const updateTransaction = async (
       return;
     }
 
-    res.status(200).json(await attachPresignedUrl(transaction));   
+    res.status(200).json(await attachPresignedUrl(transaction));
   } catch (err: any) {
     if (err.message?.includes("Insufficient stock")) {
       res.status(400).json({ message: err.message });
