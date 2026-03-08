@@ -51,7 +51,7 @@ export const createTransaction = async (
       res.status(400).json({ message: err.message });
       return;
     }
-    res.status(500).json({ message: "Error creating transaction", err });
+    res.status(500).json({ message: "Error creating transaction", error: err.message || String(err),   });
   }
 };
 
@@ -66,8 +66,8 @@ export const getTransactions = async (
       transactions.map(attachPresignedUrl)
     );
     res.status(200).json(transactionsWithUrls);
-  } catch (err) {
-    res.status(500).json({ message: "Error getting transactions", err });
+  } catch (err: any) {
+    res.status(500).json({ message: "Error getting transactions", error: err.message || String(err),   });
   }
 };
 
@@ -85,8 +85,8 @@ export const getTransactionById = async (
     }
 
     res.status(200).json(await attachPresignedUrl(transaction));
-  } catch (err) {
-    res.status(500).json({ message: "Error getting transaction", err });
+  } catch (err: any) {
+    res.status(500).json({ message: "Error getting transaction", error: err.message || String(err),   });
   }
 };
 
@@ -119,6 +119,9 @@ export const updateTransaction = async (
       res.status(400).json({ message: err.message });
       return;
     }
-    res.status(500).json({ message: "Error updating transaction status", err });
+    res.status(500).json({ 
+      message: "Error updating transaction status", 
+      error: err.message || String(err),  
+    });
   }
 };
