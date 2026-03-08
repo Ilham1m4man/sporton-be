@@ -1,5 +1,34 @@
 import { Request, Response } from "express";
 import { TransactionRepository } from "../repositories/transaction.repository";
+import { generatePresignedUrl } from "../utils/s3.utils";     
+
+// ── Helper: attach presigned URL ────────────────────────────
+const attachPresignedUrl = async (item: any) => {
+  // Presign payment proof
+  if (item?.payment_proof) {
+    item.payment_proof = await generatePresignedUrl(item.payment_proof);
+  }
+
+  // Presign nested purchased_items → product images + category images
+  if (item?.purchased_items?.length) {
+    for (const purchasedItem of item.purchased_items) {
+      // Product image
+      if (purchasedItem?.product_id?.image_url) {
+        purchasedItem.product_id.image_url = await generatePresignedUrl(
+          purchasedItem.product_id.image_url
+        );
+      }
+      // Product → Category image
+      if (purchasedItem?.product_id?.category?.image_url) {
+        purchasedItem.product_id.category.image_url = await generatePresignedUrl(
+          purchasedItem.product_id.category.image_url
+        );
+      }
+    }
+  }
+
+  return item;
+};
 
 // ── CREATE ──────────────────────────────────────────────────
 export const createTransaction = async (
@@ -25,9 +54,8 @@ export const createTransaction = async (
     }
 
     const transaction = await TransactionRepository.create(transactionData);
-    res.status(201).json(transaction);
+    res.status(201).json(await attachPresignedUrl(transaction));    
   } catch (err: any) {
-    // Handle product not found error
     if (err.message?.includes("not found")) {
       res.status(400).json({ message: err.message });
       return;
@@ -43,7 +71,11 @@ export const getTransactions = async (
 ): Promise<void> => {
   try {
     const transactions = await TransactionRepository.findAll();
-    res.status(200).json(transactions);
+    // Presign semua transactions
+    const transactionsWithUrls = await Promise.all(
+      transactions.map(attachPresignedUrl)
+    );
+    res.status(200).json(transactionsWithUrls);                     
   } catch (err) {
     res.status(500).json({ message: "Error getting transactions", err });
   }
@@ -51,7 +83,7 @@ export const getTransactions = async (
 
 // ── GET BY ID ───────────────────────────────────────────────
 export const getTransactionById = async (
-  req: Request<{id: string}>,
+  req: Request<{ id: string }>,
   res: Response,
 ): Promise<void> => {
   try {
@@ -62,7 +94,7 @@ export const getTransactionById = async (
       return;
     }
 
-    res.status(200).json(transaction);
+    res.status(200).json(await attachPresignedUrl(transaction));    
   } catch (err) {
     res.status(500).json({ message: "Error getting transaction", err });
   }
@@ -70,7 +102,7 @@ export const getTransactionById = async (
 
 // ── UPDATE STATUS ───────────────────────────────────────────
 export const updateTransaction = async (
-  req: Request<{id: string}>,
+  req: Request<{ id: string }>,
   res: Response,
 ): Promise<void> => {
   try {
@@ -92,9 +124,8 @@ export const updateTransaction = async (
       return;
     }
 
-    res.status(200).json(transaction);
+    res.status(200).json(await attachPresignedUrl(transaction));   
   } catch (err: any) {
-    // Handle insufficient stock
     if (err.message?.includes("Insufficient stock")) {
       res.status(400).json({ message: err.message });
       return;
